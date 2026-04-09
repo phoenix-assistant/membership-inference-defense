@@ -1,422 +1,139 @@
-# Membership Inference Defense
+# Membership Inference Defense (MID)
 
-> **One-line pitch:** Detect if your proprietary data was used to train someone else's AI model — and prove it in court.
+**Forensic toolkit for detecting if proprietary data was used to train AI models.**
 
----
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 
-## Problem
+## Threat Model
 
-### Who Feels the Pain
-- **Enterprises with fine-tuned models** — Worried competitors or vendors stole training data
-- **Data vendors** — Getty, Shutterstock, news orgs whose content trains AI without payment
-- **Healthcare/Finance** — Need to prove patient/customer data wasn't leaked via model
-- **ML teams** — Defending against accusations of unauthorized data use
-- **Legal teams** — Building evidence for AI copyright/privacy litigation
+Organizations invest heavily in curating proprietary datasets. When these datasets are used without authorization to train AI models, IP theft occurs — but proving it is hard.
 
-### How Bad Is It
-**Existential for some, emerging for most:**
+MID provides forensic tools to:
 
-- **$1.8B in pending AI copyright lawsuits** (NYT v. OpenAI, Getty v. Stability, etc.)
-- **Model theft is invisible** — No fingerprints when data is used for training
-- **Fine-tuning creates IP leakage** — Enterprise models may memorize proprietary data
-- **Membership inference attacks are proven** — Academic research shows they work
-- **No commercial defense tools exist** — Only research implementations
+1. **Detect** — Run membership inference attacks to determine if specific data samples were in a model's training set
+2. **Watermark** — Embed invisible markers in training data that survive model training
+3. **Fingerprint** — Create behavioral signatures of models for comparison
+4. **Report** — Generate forensic evidence packages for legal proceedings
 
-**Real scenarios:**
-1. **Vendor trains on your data:** Enterprise shares data with AI vendor; vendor uses it for other customers' models
-2. **Competitor steals dataset:** Your curated training data ends up in competitor's model
-3. **Employee exfiltration:** Departing ML engineer takes data, fine-tunes competing model
-4. **Regulatory audit:** Prove to regulators your model wasn't trained on prohibited data
-5. **Litigation support:** Generate forensic evidence that content was used without license
+### Attack Vectors
 
----
+| Attack | Technique | Strength |
+|--------|-----------|----------|
+| **Confidence** | Perplexity-based scoring — lower perplexity suggests memorization | Fast, works on any model with logit access |
+| **Shadow Model** | Train shadow models to learn member/non-member distributions | Higher accuracy, requires compute |
+| **Gradient** | Gradient norm analysis — converged samples have smaller gradients | Most precise, requires model weights |
 
-## Solution
+## Installation
 
-### What We Build
-A forensic toolkit for ML training data:
-1. **Membership Inference Engine** — Detect if specific data was in training set
-2. **Data Watermarking** — Embed invisible markers in training data
-3. **Model Fingerprinting** — Create signatures of model behavior
-4. **Evidence Generation** — Court-admissible forensic reports
+```bash
+pip install membership-inference-defense
 
-### How It Works
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│              MEMBERSHIP INFERENCE DEFENSE                   │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │                  DETECTION SUITE                     │   │
-│  │                                                      │   │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │   │
-│  │  │ Membership  │  │ Extraction  │  │ Memorization│  │   │
-│  │  │ Inference   │  │ Attack      │  │ Probing     │  │   │
-│  │  │ Attack      │  │ Simulation  │  │             │  │   │
-│  │  └─────────────┘  └─────────────┘  └─────────────┘  │   │
-│  │         │               │               │            │   │
-│  │         └───────────────┼───────────────┘            │   │
-│  │                         ▼                            │   │
-│  │              ┌──────────────────┐                    │   │
-│  │              │ Statistical      │                    │   │
-│  │              │ Analysis Engine  │                    │   │
-│  │              └────────┬─────────┘                    │   │
-│  │                       ▼                              │   │
-│  │              ┌──────────────────┐                    │   │
-│  │              │ Confidence Score │                    │   │
-│  │              │ (0-100%)         │                    │   │
-│  │              └──────────────────┘                    │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │                  DEFENSE SUITE                       │   │
-│  │                                                      │   │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │   │
-│  │  │ Data        │  │ Training    │  │ Model       │  │   │
-│  │  │ Watermarking│  │ Hardening   │  │ Fingerprint │  │   │
-│  │  └─────────────┘  └─────────────┘  └─────────────┘  │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │               FORENSIC REPORTING                     │   │
-│  │  • Evidence chain                                    │   │
-│  │  • Statistical methodology                           │   │
-│  │  • Expert witness support                            │   │
-│  └─────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
+# With PDF report support
+pip install membership-inference-defense[pdf]
 ```
 
-**Detection Techniques:**
-- **Membership Inference Attacks (MIA):** Query model with suspected training samples, measure confidence differences
-- **Extraction Attacks:** Attempt to extract memorized content from model
-- **Canary Injection:** Plant known markers in data, check if model reproduces them
-- **Behavioral Analysis:** Compare model responses to known training patterns
-- **Perplexity Analysis:** Training data has lower perplexity in target model
+### From source
 
-**Defense Techniques:**
-- **Differential Privacy Training:** Add noise to prevent memorization
-- **Data Watermarking:** Invisible markers that survive training
-- **Model Watermarking:** Embed signatures in model weights
-- **Unlearning Verification:** Prove data was removed from model
-
----
-
-## Why Now
-
-### Timing
-1. **Litigation wave begun** — NYT, Getty, Sarah Silverman, etc. suing AI companies
-2. **Enterprise fine-tuning exploding** — Everyone fine-tuning on proprietary data
-3. **Regulatory pressure** — EU AI Act requires training data documentation
-4. **No tools exist** — Gap between academic research and commercial products
-5. **AI forensics emerging** — Courts accepting technical evidence
-
-### Technical Readiness
-- Membership inference attacks well-researched (200+ papers)
-- Techniques proven effective against GPT-4, Claude, open models
-- Differential privacy implementations mature
-- Model interpretability improving
-
-### Market Gap
-- Academic tools only (research repos, not products)
-- No commercial membership inference service
-- IP lawyers need turnkey forensic tools
-- Enterprise security has no ML data protection
-
----
-
-## Market Landscape
-
-### TAM/SAM/SOM
-- **TAM:** $8.2B — AI security + ML governance (2026)
-- **SAM:** $1.5B — ML IP protection specifically
-- **SOM Year 1:** $5M — 25 enterprise + 20 litigation engagements
-
-### Competitors
-
-| Company | Focus | Gap |
-|---------|-------|-----|
-| **Arthur AI** | Model monitoring | No membership inference |
-| **Fiddler AI** | ML observability | No IP protection focus |
-| **Robust Intelligence** | AI security | Red team focus, not forensics |
-| **Trail of Bits** | Security consulting | General, not ML specialized |
-| **Protect AI** | ML supply chain | Different threat model |
-| **HiddenLayer** | ML security | Model protection, not data |
-| **CalypsoAI** | AI governance | Enterprise focus, not forensics |
-
-### Academic/Research
-- **Google Research** — Published MIA techniques (not productized)
-- **Microsoft Research** — Differential privacy tools (Azure integration only)
-- **OpenMined** — Privacy-preserving ML (different use case)
-- **Academic Labs** — Princeton, Stanford, Berkeley (research only)
-
-### Legal/Consulting
-- **Big 4 firms** — Deloitte, EY doing AI audits (not technical depth)
-- **IP litigation firms** — Need expert witnesses, not tools
-- **eDiscovery vendors** — Don't understand ML forensics
-
-### Key Gaps We Exploit
-1. **No commercial MIA tool** — academics publish papers, nobody sells product
-2. **Litigation-ready forensics** — bridge research to courtroom
-3. **Proactive defense** — watermarking before theft happens
-4. **Enterprise-grade** — SOC2, support, integrations
-
----
-
-## Competitive Advantages
-
-### Moats
-
-1. **Forensic Methodology** — Develop court-accepted methodology with legal partners. First-mover in admissible AI forensics.
-
-2. **Attack Library** — Comprehensive implementation of MIA techniques. More attacks = better detection.
-
-3. **Case Law Database** — Track AI IP litigation, build playbooks. Legal network effects.
-
-4. **Expert Network** — Build roster of expert witnesses. Recurring revenue from litigation support.
-
-5. **Watermarking Patents** — Novel data/model watermarking techniques. Defensive IP.
-
-### Differentiation
-- **Positioning:** Legal/forensic angle vs. security/observability
-- **Buyer:** Legal + Security teams (dual stakeholder)
-- **Output:** Court-ready evidence vs. dashboards
-- **Business model:** Recurring + engagement fees (high margin)
-
----
-
-## Technical Architecture
-
-### Components
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        ARCHITECTURE                             │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  Customer Environment                                           │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │  Data Preparation Layer                                  │  │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐      │  │
-│  │  │ Data        │  │ Canary      │  │ Fingerprint │      │  │
-│  │  │ Watermarker │  │ Injector    │  │ Generator   │      │  │
-│  │  └─────────────┘  └─────────────┘  └─────────────┘      │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                 │
-│  Our Platform                                                   │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │  Analysis Engine                                         │  │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐      │  │
-│  │  │ MIA Attack  │  │ Extraction  │  │ Statistical │      │  │
-│  │  │ Framework   │  │ Simulator   │  │ Analyzer    │      │  │
-│  │  │ (PyTorch)   │  │ (Custom)    │  │ (SciPy)     │      │  │
-│  │  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘      │  │
-│  │         └────────────────┼────────────────┘              │  │
-│  │                          ▼                               │  │
-│  │  ┌───────────────────────────────────────────────────┐  │  │
-│  │  │  Evidence Compiler                                │  │  │
-│  │  │  • Confidence scoring                             │  │  │
-│  │  │  • Methodology documentation                      │  │  │
-│  │  │  • Audit trail                                    │  │  │
-│  │  └───────────────────────────────────────────────────┘  │  │
-│  │                          │                               │  │
-│  │                          ▼                               │  │
-│  │  ┌───────────────────────────────────────────────────┐  │  │
-│  │  │  Report Generator                                 │  │  │
-│  │  │  • Executive summary                              │  │  │
-│  │  │  • Technical appendix                             │  │  │
-│  │  │  • Legal exhibit format                           │  │  │
-│  │  └───────────────────────────────────────────────────┘  │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                 │
-│  Integrations                                                   │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│  │ HuggingFace  │  │ OpenAI API   │  │ Cloud ML     │          │
-│  │ Models       │  │ (Indirect)   │  │ (Vertex,     │          │
-│  │              │  │              │  │  Bedrock)    │          │
-│  └──────────────┘  └──────────────┘  └──────────────┘          │
-└─────────────────────────────────────────────────────────────────┘
+```bash
+git clone https://github.com/phoenix-assistant/membership-inference-defense.git
+cd membership-inference-defense
+pip install -e ".[dev]"
 ```
 
-### Tech Stack
-- **Core Engine:** Python + PyTorch (ML attacks)
-- **Analysis:** NumPy, SciPy, statsmodels for statistical tests
-- **Infrastructure:** GPU clusters (AWS/GCP) for attack execution
-- **API:** FastAPI + PostgreSQL
-- **Frontend:** Next.js dashboard
-- **Reports:** LaTeX + automated PDF generation
-- **Security:** Air-gapped options for sensitive data
+## Quick Start
 
-### Attack Implementations
-- Shadow model attacks (Shokri et al.)
-- Label-only attacks (Choquette-Choo et al.)
-- Likelihood ratio attacks (Carlini et al.)
-- Reference-based attacks
-- Metric-based attacks
-- Neural network-based attacks
+### Check if data was used in training
 
----
+```bash
+# Confidence-based attack (fastest)
+mid check --data samples.jsonl --model gpt2 --threshold 0.8
 
-## Build Plan
+# Shadow model attack (more accurate)
+mid check --data samples.jsonl --model gpt2 --attack shadow
 
-### Phase 1: Research Validation (Months 1-4) — $250K budget
-**Goal:** Prove techniques work commercially, establish methodology
+# Gradient-based attack (requires model weights)
+mid check --data samples.jsonl --model gpt2 --attack gradient --output results.json
+```
 
-- [ ] Implement top 10 MIA techniques
-- [ ] Benchmark against open-source models (Llama, Mistral)
-- [ ] Partner with 2 IP litigation firms
-- [ ] Publish methodology whitepaper
-- [ ] 3 pilot engagements (free, case study rights)
+### Watermark your training data
 
-**Success Metrics:**
-- 85%+ detection accuracy on test cases
-- 2 law firm partnerships
-- 1 conference presentation (USENIX, IEEE S&P)
-- $0 revenue (validation phase)
+```bash
+# Embed invisible Unicode markers
+mid watermark --input dataset.jsonl --output watermarked.jsonl --key SECRET
 
-### Phase 2: Litigation Service (Months 5-10) — $500K budget
-**Goal:** Revenue from forensic engagements
+# Whitespace-based watermarking
+mid watermark --input dataset.jsonl --output watermarked.jsonl --key SECRET --method whitespace
+```
 
-- [ ] Full forensic platform (analysis + reporting)
-- [ ] Expert witness preparation workflow
-- [ ] Support for GPT-4/Claude analysis (API-based)
-- [ ] 5 paid litigation engagements
-- [ ] SOC2 Type 1
+### Fingerprint a model
 
-**Success Metrics:**
-- $500K revenue (5 engagements × $100K avg)
-- 1 case going to trial using our evidence
-- 80%+ client satisfaction
-- Referral pipeline from law firms
+```bash
+mid fingerprint --model gpt2 --output fingerprint.json
+```
 
-### Phase 3: Enterprise Product (Months 11-18) — $1M budget
-**Goal:** Recurring revenue from proactive defense
+### Generate forensic report
 
-- [ ] Data watermarking SDK
-- [ ] Continuous monitoring service
-- [ ] Model fingerprinting toolkit
-- [ ] Enterprise dashboard
-- [ ] Self-service tier for startups
-- [ ] FedRAMP for government
+```bash
+mid report --evidence results.json --output forensic-report.html
+mid report --evidence results.json --output forensic-report.json
+```
 
-**Success Metrics:**
-- $2M ARR (20 enterprise + 15 engagements)
-- 3 major case wins citing our forensics
-- Partnership with 1 cloud provider
-- 50+ enterprise pilots
+## Python API
 
----
+```python
+from mid.inference import run_inference
+from mid.watermark import watermark_text, detect_watermark
+from mid.fingerprint import generate_fingerprint, compare_fingerprints
 
-## Risks & Challenges
+# Run membership inference
+results = run_inference("samples.jsonl", "gpt2", threshold=0.8, attack_type="confidence")
+print(f"Members detected: {results['summary']['members_detected']}")
 
-### Technical Risks
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| MIA doesn't work on large models | Medium | Critical | Multi-technique approach; focus on fine-tuned models |
-| Black-box access insufficient | High | High | Partner with model providers; focus on accessible models |
-| Watermarks don't survive training | Medium | Medium | Multiple watermarking techniques; research investment |
-| Results not legally defensible | Medium | Critical | Partner with legal experts; publish methodology |
+# Watermark text
+watermarked = watermark_text("My proprietary training data", key="SECRET")
+detection = detect_watermark(watermarked, key="SECRET")
+print(f"Watermark detected: {detection['detected']} (confidence: {detection['confidence']})")
 
-### Business Risks
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Market too early | Medium | High | Start with litigation (pain is now), expand to prevention |
-| Dependent on case outcomes | High | Medium | Diversify to enterprise contracts |
-| Expert witness conflicts | Medium | Medium | Clear conflict policies; multiple experts |
-| AI companies build countermeasures | High | Medium | Arms race is ongoing; constant R&D needed |
+# Fingerprint models
+fp1 = generate_fingerprint("gpt2")
+fp2 = generate_fingerprint("distilgpt2")
+comparison = compare_fingerprints(fp1, fp2)
+print(f"Same model: {comparison['likely_same_model']}")
+```
 
-### Legal Risks
-- Expert testimony can be challenged (Daubert standards)
-- May be called to testify against deep-pocketed opponents
-- IP around techniques could be contested
-- International jurisdiction complexity
+## Data Format
 
----
+Input data should be JSONL with a `text` field:
 
-## Monetization
+```jsonl
+{"text": "First training sample"}
+{"text": "Second training sample"}
+{"text": "Third training sample"}
+```
 
-### Pricing Model
+## How It Works
 
-**Litigation Services:**
-| Service | Price | Notes |
-|---------|-------|-------|
-| Initial Assessment | $25,000 | Feasibility analysis |
-| Full Forensic Analysis | $75,000-150,000 | Complete investigation |
-| Expert Witness | $500-800/hour | Deposition + trial |
-| Report Generation | $15,000 | Court-ready documentation |
+### Membership Inference
 
-**Enterprise Products:**
-| Tier | Price/Year | Features |
-|------|------------|----------|
-| **Startup** | $24,000 | 1 model, basic watermarking |
-| **Business** | $96,000 | 5 models, monitoring, SDK |
-| **Enterprise** | $240,000+ | Unlimited, on-prem, support |
+The core insight: models behave differently on data they were trained on vs. unseen data. MID exploits this through three attack strategies:
 
-### Path to $1M ARR
+- **Confidence Attack**: Measures model perplexity on each sample. Training data typically yields lower perplexity (higher confidence).
+- **Shadow Model Attack**: Uses statistical distributions to model the boundary between member and non-member samples.
+- **Gradient Attack**: Analyzes gradient norms — the model has already converged on training data, producing smaller gradients.
 
-**Blended model (litigation + enterprise):**
+### Watermarking
 
-| Revenue Stream | Year 1 |
-|----------------|--------|
-| Litigation engagements (8 × $100K avg) | $800K |
-| Enterprise contracts (3 × $80K avg) | $240K |
-| Expert witness hours (200 × $600) | $120K |
-| **Total** | **$1.16M** |
+Embeds invisible markers using zero-width Unicode characters (U+200B, U+200D, U+200C, U+2060). These characters:
+- Are invisible to humans
+- Survive copy-paste operations
+- Can be detected with the correct key
+- Are robust to minor text modifications
 
-**Path:**
-- Months 1-6: Build platform, 2 free pilots, 1 paid engagement ($100K)
-- Months 7-12: 5 paid engagements, 2 enterprise pilots convert ($700K cumulative)
-- Year 2: 15 engagements, 10 enterprise, $3M ARR trajectory
+### Fingerprinting
 
-### Unit Economics
-- Litigation: $100K engagement, $30K cost = 70% gross margin
-- Enterprise: $100K ACV, $20K delivery = 80% gross margin
-- Expert witness: $600/hour, pure margin (time-based)
+Creates a behavioral signature by probing the model with standardized inputs and recording response characteristics (loss, perplexity, entropy, token distributions).
 
----
+## License
 
-## Verdict
-
-# 🟢 BUILD
-
-### Reasoning
-
-**Strong YES because:**
-
-1. **Massive litigation demand** — $1.8B+ in AI copyright suits need forensic evidence. Lawyers are paying now.
-
-2. **No competition** — Zero commercial MIA tools. Academic research doesn't convert to courtroom evidence.
-
-3. **High ASP, high margin** — $100K+ engagements at 70%+ margin. Only need 10 customers for $1M.
-
-4. **Technical moat** — Deep ML expertise required. Implementation quality matters. Not easily copied.
-
-5. **Multiple revenue streams** — Litigation services (now) + Enterprise products (later) + Expert fees (ongoing).
-
-6. **Regulatory tailwinds** — EU AI Act requires training data disclosure. Enforcement creates demand.
-
-7. **Timing perfect** — First major AI IP cases going to trial 2024-2025. Need forensics now.
-
-**Why this beats the other ideas:**
-- **vs. Shadow AI Detector:** Both are 🟢, but this has higher ASP and less competition
-- **vs. AI Tracker Auditor:** Enterprise + legal is easier than B2C monetization
-
-**Key success factors:**
-1. Partner with top IP litigation firms early
-2. Publish methodology for credibility
-3. Win 1-2 high-profile cases
-4. Build expert witness reputation
-5. Expand to enterprise proactive defense
-
-**Who should build this:**
-- ML security researchers with litigation interest
-- Former security consultants (Trail of Bits, NCC alumni)
-- Teams with law firm relationships
-- Anyone who can credibly testify in court
-
-**Watch outs:**
-- Techniques may not work against frontier models (start with fine-tuned)
-- Court acceptance of methodology not guaranteed (invest in validation)
-- Dependent on litigation outcomes (diversify to enterprise)
-
-**Bottom line:** Clear demand, no competition, high margins, technical differentiation. The AI IP litigation wave is here — be the forensics provider. Build it.
+MIT
